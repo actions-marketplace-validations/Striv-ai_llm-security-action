@@ -1,14 +1,14 @@
+# llm-policy.yml
 policies:
   api-key-security: true
   rate-limit: true
 
-custom-api-key-prefixes: []
-
-exclude_globs:         # NEW
+custom-api-key-prefixes: []        # add your own patterns
+exclude_globs:                     # speed / false-positive tweaks
   - ".git/*"
-  - "verified_prefixes.txt"
   - "__pycache__/*"
   - "*.pyc"
+  - "verified_prefixes.txt"
 
 rate-limit:
   languages: ["python", "javascript", "go"]
