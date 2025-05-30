@@ -1,7 +1,7 @@
 import re, pathlib, fnmatch
 
 # default prefixes file
-DEFAULT_PREFIXES = pathlib.Path(__file__).with_suffix(".prefixes")
+DEFAULT_PREFIXES = pathlib.Path("verified_prefixes.txt")
 
 def load_prefixes(extra):
     prefixes = set()
