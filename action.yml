@@ -1,0 +1,16 @@
+name: "LLM Policy Enforcer"
+description: "Scans for leaked LLM API keys and missing rate-limit safety."
+author: "Striv"
+branding:
+  icon: shield
+  color: purple
+
+inputs:
+  config:
+    description: "Path to llm-policy.yml (optional)"
+    required: false
+    default: "llm-policy.yml"
+
+runs:
+  using: "docker"
+  image: "Dockerfile"
