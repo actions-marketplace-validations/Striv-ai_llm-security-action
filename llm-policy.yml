@@ -1,14 +1,16 @@
-# Enable/disable individual checks
 policies:
   api-key-security: true
   rate-limit: true
 
-# Custom key prefixes a team might add
-custom-api-key-prefixes:
-  - "mycorp-llm-"
+custom-api-key-prefixes: []
 
-# Rate-limit rules (warning only for now)
+exclude_globs:         # NEW
+  - ".git/*"
+  - "verified_prefixes.txt"
+  - "__pycache__/*"
+  - "*.pyc"
+
 rate-limit:
   languages: ["python", "javascript", "go"]
-  warn-only: true          # never fail CI
-  min-sleep-seconds: 1.0   # if sleep/backoff < 1 → warn
+  warn-only: true
+  min-sleep-seconds: 1.0
