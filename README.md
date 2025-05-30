@@ -1,4 +1,4 @@
-# LLM Policy Enforcer&nbsp;· GitHub Action ![version](https://img.shields.io/github/v/tag/<ORG>/llm-policy-action?label=version) ![tests](https://img.shields.io/github/actions/workflow/status/<ORG>/llm-policy-action/ci.yml?label=CI) ![license](https://img.shields.io/github/license/<ORG>/llm-policy-action) ![marketplace](https://img.shields.io/badge/GH_Marketplace-View-blue)
+# LLM Policy Enforcer&nbsp;· GitHub Action ![version](https://img.shields.io/github/v/tag/Ballesty-Liam/llm-security-action?label=version) ![license](https://img.shields.io/github/license/Ballesty-Liam/llm-security-action) ![marketplace](https://img.shields.io/badge/GH_Marketplace-View-blue)
 
 Secure your Gen-AI codebase in **one line**.  
 This Action scans every push / pull request for:
