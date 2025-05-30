@@ -16,8 +16,3 @@ cd llm-policy-action
 python -m venv .venv && source .venv/bin/activate
 pip install -r dev-requirements.txt
 ```
-
-Then you can run the unit tests
-```bash
-pytest
-```
