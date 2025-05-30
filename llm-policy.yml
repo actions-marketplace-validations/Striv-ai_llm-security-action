@@ -9,6 +9,7 @@ exclude_globs:                     # speed / false-positive tweaks
   - "__pycache__/*"
   - "*.pyc"
   - "verified_prefixes.txt"
+  - "README.md"
 
 rate-limit:
   languages: ["python", "javascript", "go"]
