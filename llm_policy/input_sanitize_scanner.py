@@ -1,4 +1,5 @@
 import ast, pathlib, re
+import itertools
 
 # Functions we consider as “sanitizers”
 SANITIZERS = {
@@ -43,10 +44,15 @@ def _python_warnings(path: pathlib.Path):
     Flow().visit(tree)
     return warns
 
+import itertools, re, pathlib
+
+# … keep SANITIZERS, API_RE, _python_warnings from earlier …
+
 def scan_input_sanitization(root: pathlib.Path, cfg):
     enabled_langs = set(cfg.get("input-sanitize", {}).get("languages", ["python"]))
     total = []
 
+    # -------- Python (AST-based) --------
     if "python" in enabled_langs:
         for p in root.rglob("*.py"):
             try:
@@ -54,12 +60,20 @@ def scan_input_sanitization(root: pathlib.Path, cfg):
             except Exception:
                 pass
 
-    # JS/Go: simple regex search (optional to expand)
-    if any(l in enabled_langs for l in ("javascript", "go")):
-        TEXT_RE = re.compile(r"(prompt|message|input)\s*[:=].{0,80}\b(openai|anthropic)\b", re.I)
-        for p in root.rglob("*.[jt]s") | root.rglob("*.go"):
+    # -------- JS / TS / Go (regex heuristic) --------
+    if enabled_langs.intersection({"javascript", "go"}):
+        text_re = re.compile(
+            r"(prompt|message|input)\s*[:=].{0,80}\b(openai|anthropic)\b",
+            re.I,
+        )
+        for p in itertools.chain(
+            root.rglob("*.js"),
+            root.rglob("*.ts"),
+            root.rglob("*.go"),
+        ):
             txt = p.read_text("utf-8", "ignore")
-            if TEXT_RE.search(txt):
+            if text_re.search(txt):
                 total.append(f"{p}: possible unsanitized input")
 
     return {"warnings": total[:20], "total": len(total)}
+
