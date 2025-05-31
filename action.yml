@@ -1,5 +1,5 @@
-name: "LLM Policy Enforcer"
-description: "Scans for leaked LLM API keys and missing rate-limit safety."
+name: "LLM Agent Trust Verification"
+description: "Scans for leaked LLM API keys, missing rate-limit incursions, and preforms input sanitization checks."
 author: "Liam Ballesty"
 branding:
   icon: shield
