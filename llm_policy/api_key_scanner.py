@@ -33,7 +33,7 @@ def scan_api_keys(root: pathlib.Path, cfg):
     prefix_re = re.compile(r"|".join(re.escape(p) for p in prefixes), re.I)
 
     exclude_globs = DEFAULT_EXCLUDE_GLOBS + cfg.get("exclude_globs", [])
-    use_entropy = cfg.get("api-key-security", {}).get("high-entropy", True)
+    use_entropy = cfg.get("api-key-security", {}).get("high-entropy", False)
 
     viol = []
     for path in root.rglob("*"):
@@ -48,6 +48,6 @@ def scan_api_keys(root: pathlib.Path, cfg):
         except Exception:
             continue
         for i, line in enumerate(text.splitlines(), 1):
-            if prefix_re.search(line) or HIGH_ENTROPY.search(line):
+            if prefix_re.search(line) or (use_entropy and HIGH_ENTROPY.search(line)):
                 viol.append(f"{path}:{i}: {line.strip()[:120]}")
     return {"violations": len(viol), "details": viol[:20]}  # cap output

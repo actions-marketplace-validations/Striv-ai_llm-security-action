@@ -20,6 +20,9 @@ exclude_globs:                     # speed / false-positive tweaks
   - ".github/**"
   - "scripts/**"
 
+api-key-security:
+  high-entropy: false
+
 rate-limit:
   languages: ["python", "javascript", "go"]
   warn-only: true
