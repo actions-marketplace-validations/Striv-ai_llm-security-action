@@ -8,7 +8,12 @@ custom-api-key-prefixes: []        # add your own patterns
 exclude_globs:                     # speed / false-positive tweaks
   - ".git/*"
   - "__pycache__/*"
+  - ".gitignore"
+  - "*.png"
+  - "*.jpg"
+  - "*.md"
   - "*.pyc"
+  - "*.class"
   - "verified_prefixes.txt"
   - "README.md"
   - "llm_policy/**"
