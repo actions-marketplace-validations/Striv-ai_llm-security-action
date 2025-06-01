@@ -1,5 +1,5 @@
 name: "LLM Agent Trust Verification"
-description: "Professional LLM security scanner for GitHub Actions. Automatically detect API key exposure, rate limiting gaps, and input validation issues."
+description: "Professional LLM security scanner. Automatically detect API key exposure, rate limiting gaps, and input validation issues."
 author: "Liam Ballesty"
 branding:
   icon: shield
