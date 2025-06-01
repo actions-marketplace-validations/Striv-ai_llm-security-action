@@ -4,7 +4,8 @@ import re, pathlib, fnmatch
 DEFAULT_PREFIXES = pathlib.Path("verified_prefixes.txt")
 DEFAULT_EXCLUDE_GLOBS = [
     "**/.git/*",
-    "**/.gitignore",
+    ".gitignore",
+    "*.gitignore",
     "**/__pycache__/*",
     "**/*.pyc",
     "**/*.class",
