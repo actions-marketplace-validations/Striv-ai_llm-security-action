@@ -1,15 +1,46 @@
-# Updated README.md Content (add after Quick Start section)
-
-## 🏆 Security Badge
-
-Show your commitment to LLM security with a GitHub-native status badge:
+# LLM Security Action · GitHub Action ![version](https://img.shields.io/github/v/tag/Ballesty-Liam/llm-security-action?label=version) ![license](https://img.shields.io/github/license/Ballesty-Liam/llm-security-action) ![marketplace](https://img.shields.io/badge/GH_Marketplace-View-blue)
 
 [![LLM Security](https://github.com/Ballesty-Liam/llm-security-action/actions/workflows/llm-security-badge.yml/badge.svg)](https://github.com/Ballesty-Liam/llm-security-action/actions/workflows/llm-security-badge.yml)
+
+Secure your Gen-AI codebase in **one line**.  
+This Action scans every push/pull request for critical LLM security issues:
+
+| 🔐 **API Key Security** | Detects leaked API keys & high-entropy tokens for common LLM/ML providers. _Fails_ the build on any hit. |
+|-------------------------|----------------------------------------------------------------------------------------------------------|
+| ⚡ **Rate Limit Heuristic** | Warns when LLM calls appear in loops without back-off (`sleep`, retry, etc.). _Warn-only_ by default. |
+| 🛡️ **Input Sanitization** | Identifies unsanitized user input flowing into LLM API calls. _Warn-only_ by default. |
+
+No secrets required – uses the default `GITHUB_TOKEN`.
+
+---
+
+## Quick Start
+
+```yaml
+# .github/workflows/llm-security.yml
+name: LLM Security Check
+on: [push, pull_request]
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Ballesty-Liam/llm-security-action@v1
+```
+
+That's it! The action will run on every push and PR, scanning your code for LLM security vulnerabilities.
+
+---
+
+## 🏆 Get the Security Badge
+
+Show your commitment to LLM security with a GitHub-native status badge:
 
 ### One-Line Setup
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/Ballesty-Liam/llm-policy-action/main/scripts/setup-badge.sh | bash
+curl -sSL https://raw.githubusercontent.com/Ballesty-Liam/llm-security-action/main/scripts/setup-badge.sh | bash
 ```
 
 This will:
@@ -17,70 +48,184 @@ This will:
 - ✅ Add the badge to your README
 - ✅ Create a default `llm-policy.yml` if needed
 
-### Manual Setup
+### Manual Badge Setup
 
-1. Create `.github/workflows/llm-security-badge.yml`:
-
-```yaml
-name: LLM Security
-on: [push, pull_request]
-
-jobs:
-  verify:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: Ballesty-Liam/llm-policy-action@v1
-```
-
-2. Add the badge to your README:
-
+Add to your README:
 ```markdown
-[![LLM Security](https://github.com/USERNAME/REPO/actions/workflows/llm-security-badge.yml/badge.svg)](https://github.com/USERNAME/REPO/actions/workflows/llm-security-badge.yml)
+[![LLM Security](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/llm-security-badge.yml/badge.svg)](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/llm-security-badge.yml)
 ```
-
-### Badge States
-
-- 🟢 **Passing** - All security checks passed
-- 🔴 **Failing** - Security violations detected
-- ⚪ **No Status** - Workflow not yet run
-
-### Why Use the Badge?
-
-- **Build Trust** - Show users you take LLM security seriously
-- **Prevent Issues** - Catch security problems before production
-- **Join the Community** - Be part of the secure LLM development movement
 
 ---
 
-## Configuration
+## Features
 
-The action uses `llm-policy.yml` for configuration:
+### 🔍 What It Scans
+
+**API Key Detection**
+- Common LLM provider prefixes (OpenAI, Anthropic, Cohere, etc.)
+- High-entropy strings that look like tokens
+- Custom prefix patterns you define
+
+**Rate Limiting**
+- LLM API calls inside `for`/`while` loops
+- Missing `sleep()` or backoff mechanisms
+- Supports Python, JavaScript, TypeScript, and Go
+
+**Input Sanitization**
+- Direct user input → LLM API calls
+- Missing HTML/SQL escape functions
+- AST-based analysis for Python, regex for JS/Go
+
+### ⚙️ Configuration
+
+Create `llm-policy.yml` in your repo root:
 
 ```yaml
-# llm-policy.yml
+# Enable/disable policies
 policies:
-  api-key-security: true     # Fail on exposed keys
-  rate-limit: true          # Warn on missing rate limits
-  input-sanitize: true      # Warn on unsanitized input
+  api-key-security: true    # Fail on exposed keys
+  rate-limit: true         # Warn on missing rate limits
+  input-sanitize: true     # Warn on unsanitized input
 
-# Add your organization's API key prefixes
+# Add custom API key prefixes
 custom-api-key-prefixes: 
-  - "org-"
-  - "internal-"
+  - "mycompany-"
+  - "internal-key-"
 
-# Speed up scans by excluding files
+# Exclude files/directories
 exclude_globs:
   - "node_modules/*"
   - ".env.example"
   - "tests/fixtures/*"
+
+# Rate limit settings
+rate-limit:
+  languages: ["python", "javascript", "go"]
+  warn-only: true
+  min-sleep-seconds: 1.0
+
+# Input sanitization settings
+input-sanitize:
+  languages: ["python", "javascript", "go"]
+  warn-only: true
+```
+
+### 📊 Action Outputs
+
+Use scan results in your workflows:
+
+```yaml
+- uses: Ballesty-Liam/llm-security-action@v1
+  id: security-scan
+  
+- name: Check results
+  run: |
+    echo "Status: ${{ steps.security-scan.outputs.status }}"
+    echo "API Keys Found: ${{ steps.security-scan.outputs.api-key-violations }}"
+    echo "Rate Limit Issues: ${{ steps.security-scan.outputs.rate-limit-warnings }}"
+```
+
+Available outputs:
+- `status`: `passed`, `warning`, or `failed`
+- `api-key-violations`: Number of exposed keys
+- `rate-limit-warnings`: Number of rate limit issues  
+- `input-sanitize-warnings`: Number of sanitization issues
+- `badge-status`: Human-readable status with emoji
+
+---
+
+## Advanced Usage
+
+### PR Comments on Failure
+
+```yaml
+- uses: Ballesty-Liam/llm-security-action@v1
+  id: scan
+  
+- name: Comment PR
+  if: failure() && github.event_name == 'pull_request'
+  uses: actions/github-script@v7
+  with:
+    script: |
+      github.rest.issues.createComment({
+        issue_number: context.issue.number,
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        body: '❌ Security scan failed! Check logs for details.'
+      })
+```
+
+### Slack Notifications
+
+```yaml
+- uses: Ballesty-Liam/llm-security-action@v1
+  id: scan
+  continue-on-error: true
+  
+- name: Notify Slack
+  if: steps.scan.outputs.status == 'failed'
+  uses: slackapi/slack-github-action@v1
+  with:
+    payload: |
+      {
+        "text": "🚨 LLM Security Alert!",
+        "blocks": [{
+          "type": "section",
+          "text": {
+            "text": "*Repo:* ${{ github.repository }}\n*Violations:* ${{ steps.scan.outputs.api-key-violations }}"
+          }
+        }]
+      }
 ```
 
 ---
 
-## Network Effects & Social Proof
+## Why Use This?
 
-When you display the LLM Security badge, you're:
-1. **Setting an Example** - Encouraging others to adopt security best practices
-2. **Building Trust** - Users can verify your security stance at a glance  
-3. **Raising Standards** - Contributing to a more secure LLM ecosystem
+**🚀 Beyond Basic Secret Scanning**
+- Catches LLM-specific patterns GitHub's secret scanning misses
+- Identifies architectural issues (rate limiting, input handling)
+- Zero configuration required to start
+
+**🎯 Built for AI/LLM Development**
+- Understands common LLM SDK patterns
+- Reduces false positives with smart exclusions
+- Covers the OWASP Top 10 for LLMs
+
+**📈 Network Effects**
+- Display the security badge to build trust
+- Join a growing community of secure LLM developers
+- Encourage best practices across the ecosystem
+
+---
+
+## Roadmap
+
+- [ ] Support for more languages (Rust, Java)
+- [ ] Detect prompt injection vulnerabilities
+- [ ] LLM cost optimization warnings
+- [ ] Integration with security dashboards
+- [ ] Custom security rules engine
+
+---
+
+## Contributing
+
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+## Support
+
+- 🐛 [Report bugs](https://github.com/Ballesty-Liam/llm-security-action/issues)
+- 💡 [Request features](https://github.com/Ballesty-Liam/llm-security-action/issues)
+- 📖 [Read docs](https://github.com/Ballesty-Liam/llm-security-action/wiki)
+
+---
+
+<p align="center">
+  Made with ❤️ for the LLM developer community<br>
+  <sub>Secure today, innovate tomorrow</sub>
+</p>

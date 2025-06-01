@@ -56,7 +56,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: Ballesty-Liam/llm-policy-action@v1
+      - uses: Ballesty-Liam/llm-security-action@v1
         id: scan
         with:
           config: llm-policy.yml

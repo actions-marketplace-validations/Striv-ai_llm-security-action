@@ -1,9 +1,15 @@
-name: "LLM Agent Trust Verification"
-description: "Scans for leaked LLM API keys, missing rate-limit incursions, and preforms input sanitization checks."
+name: "LLM Security Scanner"
+description: "Scans for leaked LLM API keys, missing rate-limit incursions, and performs input sanitization checks."
 author: "Liam Ballesty"
 branding:
   icon: shield
   color: purple
+
+inputs:
+  config:
+    description: "Path to llm-policy.yml configuration file"
+    required: false
+    default: "llm-policy.yml"
 
 outputs:
   status:
@@ -15,7 +21,7 @@ outputs:
   input-sanitize-warnings:
     description: "Number of input sanitization warnings"
   badge-status:
-    description: "Status text for badges"
+    description: "Status text for badges: ✅ Secured, ⚠️ Warnings, or ❌ Failed"
 
 runs:
   using: "docker"

@@ -9,8 +9,8 @@ We welcome pull requests, feature proposals, and bug reports.
 
 ```bash
 # fork → clone
-git clone https://github.com/<your-handle>/llm-policy-action.git
-cd llm-policy-action
+git clone https://github.com/<your-handle>/llm-security-action.git
+cd llm-security-action
 
 # set up dev environment
 python -m venv .venv && source .venv/bin/activate
