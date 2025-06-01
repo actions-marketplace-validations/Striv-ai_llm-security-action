@@ -12,7 +12,7 @@ exclude_globs:                     # speed / false-positive tweaks
   - "verified_prefixes.txt"
   - "README.md"
   - "llm_policy/**"
-  - ".github/**"        
+  - ".github/**"
   - "scripts/**"
 
 rate-limit:
