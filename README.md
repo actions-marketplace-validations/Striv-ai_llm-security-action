@@ -84,5 +84,3 @@ When you display the LLM Security badge, you're:
 1. **Setting an Example** - Encouraging others to adopt security best practices
 2. **Building Trust** - Users can verify your security stance at a glance  
 3. **Raising Standards** - Contributing to a more secure LLM ecosystem
-
-As more repositories adopt the badge, it becomes a recognized standard for LLM security, creating positive pressure for the entire community to improve their security practices.
