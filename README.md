@@ -3,7 +3,7 @@
 [![LLM Security](https://github.com/Ballesty-Liam/llm-security-action/actions/workflows/llm-security-badge.yml/badge.svg)](https://github.com/Ballesty-Liam/llm-security-action/actions/workflows/llm-security-badge.yml)
 
 Secure your Gen-AI codebase in **one line**.  
-This Action scans every push/pull request for critical LLM security issues:
+Professional LLM security scanning for production AI applications:
 
 | 🔐 **API Key Security** | Detects leaked API keys & high-entropy tokens for common LLM/ML providers. _Fails_ the build on any hit. |
 |-------------------------|----------------------------------------------------------------------------------------------------------|
@@ -156,7 +156,15 @@ Available outputs:
 ```
 
 ---
+## 🏢 Professional Security Analysis
+- Production-grade scanning for commercial LLM applications
+- Comprehensive vulnerability detection across multiple languages
+- Professional reporting with actionable security findings
+- Configurable policies for enterprise security requirements
 
+**Need assistance with implementation?** Contact the maintainers for guidance.
+
+---
 ## Why Use This?
 
 **🚀 Beyond Basic Secret Scanning**
