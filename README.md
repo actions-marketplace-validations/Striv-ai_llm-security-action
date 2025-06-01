@@ -1,26 +1,88 @@
-# LLM Policy Enforcer&nbsp;· GitHub Action ![version](https://img.shields.io/github/v/tag/Ballesty-Liam/llm-security-action?label=version) ![license](https://img.shields.io/github/license/Ballesty-Liam/llm-security-action) ![marketplace](https://img.shields.io/badge/GH_Marketplace-View-blue)
+# Updated README.md Content (add after Quick Start section)
 
-Secure your Gen-AI codebase in **one line**.  
-This Action scans every push / pull request for:
+## 🏆 Security Badge
 
-| 🔐  **API-Key Security** | Detects leaked API keys & high-entropy tokens for common LLM / ML providers. _Fail_ the build on any hit. | 
+Show your commitment to LLM security with a GitHub-native status badge:
 
-| ⚡ **Rate-Limit Heuristic** | Warns when LLM calls appear in loops without back-off (`sleep`, retry, etc.). _Warn-only_ by default. |
+[![LLM Security](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/llm-security-badge.yml/badge.svg)](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/llm-security-badge.yml)
 
-No secrets required – uses the default `GITHUB_TOKEN`.
+### One-Line Setup
 
----
+```bash
+curl -sSL https://raw.githubusercontent.com/Ballesty-Liam/llm-policy-action/main/scripts/setup-badge.sh | bash
+```
 
-## Quick Start
+This will:
+- ✅ Create the badge workflow (`.github/workflows/llm-security-badge.yml`)
+- ✅ Add the badge to your README
+- ✅ Create a default `llm-policy.yml` if needed
+
+### Manual Setup
+
+1. Create `.github/workflows/llm-security-badge.yml`:
 
 ```yaml
-# .github/workflows/llm-policy.yml
-name: LLM Policy Check
+name: LLM Security
 on: [push, pull_request]
 
 jobs:
-  security:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: <ORG>/llm-policy-action@v1              # ← that’s it!
+      - uses: Ballesty-Liam/llm-policy-action@v1
+```
+
+2. Add the badge to your README:
+
+```markdown
+[![LLM Security](https://github.com/USERNAME/REPO/actions/workflows/llm-security-badge.yml/badge.svg)](https://github.com/USERNAME/REPO/actions/workflows/llm-security-badge.yml)
+```
+
+### Badge States
+
+- 🟢 **Passing** - All security checks passed
+- 🔴 **Failing** - Security violations detected
+- ⚪ **No Status** - Workflow not yet run
+
+### Why Use the Badge?
+
+- **Build Trust** - Show users you take LLM security seriously
+- **Prevent Issues** - Catch security problems before production
+- **Join the Community** - Be part of the secure LLM development movement
+
+---
+
+## Configuration
+
+The action uses `llm-policy.yml` for configuration:
+
+```yaml
+# llm-policy.yml
+policies:
+  api-key-security: true     # Fail on exposed keys
+  rate-limit: true          # Warn on missing rate limits
+  input-sanitize: true      # Warn on unsanitized input
+
+# Add your organization's API key prefixes
+custom-api-key-prefixes: 
+  - "org-"
+  - "internal-"
+
+# Speed up scans by excluding files
+exclude_globs:
+  - "node_modules/*"
+  - ".env.example"
+  - "tests/fixtures/*"
+```
+
+---
+
+## Network Effects & Social Proof
+
+When you display the LLM Security badge, you're:
+1. **Setting an Example** - Encouraging others to adopt security best practices
+2. **Building Trust** - Users can verify your security stance at a glance  
+3. **Raising Standards** - Contributing to a more secure LLM ecosystem
+
+As more repositories adopt the badge, it becomes a recognized standard for LLM security, creating positive pressure for the entire community to improve their security practices.

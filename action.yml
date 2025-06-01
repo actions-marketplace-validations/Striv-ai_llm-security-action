@@ -5,11 +5,17 @@ branding:
   icon: shield
   color: purple
 
-inputs:
-  config:
-    description: "Path to llm-policy.yml (optional)"
-    required: false
-    default: "llm-policy.yml"
+outputs:
+  status:
+    description: "Overall status: passed, warning, or failed"
+  api-key-violations:
+    description: "Number of API key violations found"
+  rate-limit-warnings:
+    description: "Number of rate limit warnings"
+  input-sanitize-warnings:
+    description: "Number of input sanitization warnings"
+  badge-status:
+    description: "Status text for badges"
 
 runs:
   using: "docker"

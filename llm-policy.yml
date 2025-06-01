@@ -11,6 +11,9 @@ exclude_globs:                     # speed / false-positive tweaks
   - "*.pyc"
   - "verified_prefixes.txt"
   - "README.md"
+  - "llm_policy/**"
+  - ".github/**"        
+  - "scripts/**"
 
 rate-limit:
   languages: ["python", "javascript", "go"]
