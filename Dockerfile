@@ -1,10 +1,10 @@
 FROM python:3.12-slim
 
-# Copy code
-COPY . /app
-WORKDIR /app
+# Copy action source
+WORKDIR /llm-policy-action
+COPY . .
 
-# Lightweight deps
 RUN pip install --no-cache-dir pyyaml rich
 
-ENTRYPOINT ["python", "entrypoint.py"]
+# ► Absolute path so GitHub’s work-dir override doesn’t matter
+ENTRYPOINT ["python", "/llm-policy-action/entrypoint.py"]
