@@ -2,6 +2,22 @@ import re, pathlib, fnmatch
 
 # default prefixes file
 DEFAULT_PREFIXES = pathlib.Path("verified_prefixes.txt")
+DEFAULT_EXCLUDE_GLOBS = [
+    "**/.git/*",
+    "**/.gitignore",
+    "**/__pycache__/*",
+    "**/*.pyc",
+    "**/*.class",
+    "**/*.png",
+    "**/*.jpg",
+    "**/*.md",
+    "**/verified_prefixes.txt",
+    "**/README.md",
+    "**/llm_policy/**",
+    "**/.github/**",
+    "**/scripts/**",
+]
+
 
 def load_prefixes(extra):
     prefixes = set()
@@ -15,8 +31,10 @@ HIGH_ENTROPY = re.compile(r"[A-Za-z0-9+/=_-]{32,}")
 def scan_api_keys(root: pathlib.Path, cfg):
     prefixes = load_prefixes(cfg.get("custom-api-key-prefixes"))
     prefix_re = re.compile(r"|".join(re.escape(p) for p in prefixes), re.IGNORECASE)
-    default_ex = [".git/*", "__pycache__/*", "*.pyc", "verified_prefixes.txt"]
-    exclude_globs = cfg.get("exclude_globs", default_ex)
+
+    # Merge defaults with any user-supplied overrides
+    exclude_globs = cfg.get("exclude_globs", [])
+    exclude_globs = DEFAULT_EXCLUDE_GLOBS + exclude_globs
     viol = []
 
     for path in root.rglob("*"):
