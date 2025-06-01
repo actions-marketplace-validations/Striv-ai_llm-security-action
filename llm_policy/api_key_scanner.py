@@ -30,17 +30,17 @@ HIGH_ENTROPY = re.compile(r"[A-Za-z0-9+/=_-]{32,}")
 
 def scan_api_keys(root: pathlib.Path, cfg):
     prefixes = load_prefixes(cfg.get("custom-api-key-prefixes"))
-    prefix_re = re.compile(r"|".join(re.escape(p) for p in prefixes), re.IGNORECASE)
+    prefix_re = re.compile(r"|".join(re.escape(p) for p in prefixes), re.I)
 
-    # Merge defaults with any user-supplied overrides
-    exclude_globs = cfg.get("exclude_globs", [])
-    exclude_globs = DEFAULT_EXCLUDE_GLOBS + exclude_globs
+    exclude_globs = DEFAULT_EXCLUDE_GLOBS + cfg.get("exclude_globs", [])
+    use_entropy = cfg.get("api-key-security", {}).get("high-entropy", True)
+
     viol = []
-
     for path in root.rglob("*"):
         if not path.is_file():
             continue
-        if any(fnmatch.fnmatch(str(path), pat) for pat in exclude_globs):
+        rel = path.as_posix()                     # ← normalize
+        if any(fnmatch.fnmatch(rel, pat) for pat in exclude_globs):
             continue
         text = ""
         try:
