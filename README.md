@@ -1,4 +1,4 @@
-# LLM Security Action · GitHub Action ![version](https://img.shields.io/github/v/tag/Ballesty-Liam/llm-security-action?label=version) ![license](https://img.shields.io/github/license/Ballesty-Liam/llm-security-action) ![marketplace](https://img.shields.io/badge/GH_Marketplace-View-blue)
+# LLM Agent Trust Verification · GitHub Action ![version](https://img.shields.io/github/v/tag/Ballesty-Liam/llm-security-action?label=version) ![license](https://img.shields.io/github/license/Ballesty-Liam/llm-security-action) ![marketplace](https://img.shields.io/badge/GH_Marketplace-View-blue)
 
 [![LLM Security](https://github.com/Ballesty-Liam/llm-security-action/actions/workflows/llm-security-badge.yml/badge.svg)](https://github.com/Ballesty-Liam/llm-security-action/actions/workflows/llm-security-badge.yml)
 
@@ -155,29 +155,6 @@ Available outputs:
       })
 ```
 
-### Slack Notifications
-
-```yaml
-- uses: Ballesty-Liam/llm-security-action@v1
-  id: scan
-  continue-on-error: true
-  
-- name: Notify Slack
-  if: steps.scan.outputs.status == 'failed'
-  uses: slackapi/slack-github-action@v1
-  with:
-    payload: |
-      {
-        "text": "🚨 LLM Security Alert!",
-        "blocks": [{
-          "type": "section",
-          "text": {
-            "text": "*Repo:* ${{ github.repository }}\n*Violations:* ${{ steps.scan.outputs.api-key-violations }}"
-          }
-        }]
-      }
-```
-
 ---
 
 ## Why Use This?
@@ -199,16 +176,6 @@ Available outputs:
 
 ---
 
-## Roadmap
-
-- [ ] Support for more languages (Rust, Java)
-- [ ] Detect prompt injection vulnerabilities
-- [ ] LLM cost optimization warnings
-- [ ] Integration with security dashboards
-- [ ] Custom security rules engine
-
----
-
 ## Contributing
 
 We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
@@ -224,8 +191,3 @@ MIT License - see [LICENSE](LICENSE) for details.
 - 📖 [Read docs](https://github.com/Ballesty-Liam/llm-security-action/wiki)
 
 ---
-
-<p align="center">
-  Made with ❤️ for the LLM developer community<br>
-  <sub>Secure today, innovate tomorrow</sub>
-</p>
