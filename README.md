@@ -4,7 +4,7 @@
 
 Show your commitment to LLM security with a GitHub-native status badge:
 
-[![LLM Security](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/llm-security-badge.yml/badge.svg)](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/llm-security-badge.yml)
+[![LLM Security](https://github.com/Ballesty-Liam/llm-policy-action/actions/workflows/llm-security-badge.yml/badge.svg)](https://github.com/Ballesty-Liam/llm-policy-action/actions/workflows/llm-security-badge.yml)
 
 ### One-Line Setup
 
