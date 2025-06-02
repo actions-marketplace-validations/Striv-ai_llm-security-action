@@ -29,7 +29,7 @@ IGNORE_FILES = {
 
 # Wildcard path skips
 DEFAULT_GLOBS = [
-    "**/.git/*", "**/__pycache__/*", "**/*.pyc", "**/*.class",
+    ".git/*", "**/.git/*", "**/__pycache__/*", "**/*.pyc", "**/*.class",
     "**/*.png", "**/*.jpg", "**/*.md", "**/*.rst",
     "**/llm_policy/**", "**/.github/**", "**/scripts/**",
 ]
