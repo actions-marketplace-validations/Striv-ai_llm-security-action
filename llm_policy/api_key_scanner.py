@@ -1,54 +1,81 @@
-import re, pathlib, fnmatch
+import fnmatch, pathlib, re
 
-# default prefixes file
-DEFAULT_PREFIXES = pathlib.Path("verified_prefixes.txt")
-DEFAULT_EXCLUDE_GLOBS = [
-    "**/.git/*",
-    ".gitignore",
-    "*.gitignore",
-    "**/__pycache__/*",
-    "**/*.pyc",
-    "**/*.class",
-    "**/*.png",
-    "**/*.jpg",
-    "**/*.md",
-    "**/verified_prefixes.txt",
-    "**/README.md",
-    "**/llm_policy/**",
-    "**/.github/**",
-    "**/scripts/**",
+# ------------ Default Provider Prefixes ------------
+DEFAULT_PREFIXES = {
+    "sk-",          # OpenAI
+    "sk-ant-",      # Anthropic
+    "hf_",          # HF
+    "AKIA",         # AWS key id
+    "azure_openai_",  # Azure env var
+    "cohere-",
+    "mistral-",
+    "claude-",
+    "gpt-4",        # model IDs can leak
+    "llama-3",
+    "phi-2",
+}
+
+# Provider prefixes compiled with a word-boundary/look-behind
+PREFIX_RE = re.compile(
+    r"(?<![A-Za-z0-9_\-])(" + "|".join(re.escape(p) for p in DEFAULT_PREFIXES) + r")",
+    re.IGNORECASE,
+)
+
+# Files to skip entirely
+IGNORE_FILES = {
+    ".gitattributes", ".gitignore",
+    "requirements.txt", "poetry.lock", "package.json",
+}
+
+# Wildcard path skips
+DEFAULT_GLOBS = [
+    "**/.git/*", "**/__pycache__/*", "**/*.pyc", "**/*.class",
+    "**/*.png", "**/*.jpg", "**/*.md", "**/*.rst",
+    "**/llm_policy/**", "**/.github/**", "**/scripts/**",
 ]
 
-
-def load_prefixes(extra):
-    prefixes = set()
-    if DEFAULT_PREFIXES.exists():
-        prefixes |= {l.strip() for l in DEFAULT_PREFIXES.read_text().splitlines() if l.strip()}
-    prefixes |= set(extra or [])
-    return prefixes
-
-HIGH_ENTROPY = re.compile(r"[A-Za-z0-9+/=_-]{32,}")
+def is_comment_or_pattern(line: str) -> bool:
+    stripped = line.strip()
+    # Comments or ignore wildcards
+    return (
+        stripped.startswith("#")
+        or stripped.startswith("*")
+        or stripped.startswith("!")
+        or stripped == ""
+    )
 
 def scan_api_keys(root: pathlib.Path, cfg):
-    prefixes = load_prefixes(cfg.get("custom-api-key-prefixes"))
-    prefix_re = re.compile(r"|".join(re.escape(p) for p in prefixes), re.I)
+    # Allow users to add extra prefixes
+    custom = set(cfg.get("custom-api-key-prefixes", []))
+    regex = re.compile(
+        r"(?<![A-Za-z0-9_\-])(" + "|".join(
+            re.escape(p) for p in sorted(DEFAULT_PREFIXES | custom, key=len, reverse=True)
+        ) + r")",
+        re.IGNORECASE,
+    )
 
-    exclude_globs = DEFAULT_EXCLUDE_GLOBS + cfg.get("exclude_globs", [])
-    use_entropy = cfg.get("api-key-security", {}).get("high-entropy", False)
+    exclude_globs = DEFAULT_GLOBS + cfg.get("exclude_globs", [])
+    violations = []
 
-    viol = []
     for path in root.rglob("*"):
         if not path.is_file():
             continue
-        rel = path.as_posix()                     # ← normalize
+
+        rel = path.as_posix()
         if any(fnmatch.fnmatch(rel, pat) for pat in exclude_globs):
             continue
-        text = ""
+        if path.name in IGNORE_FILES:
+            continue
+
         try:
-            text = path.read_text("utf-8", "ignore")
+            for lineno, line in enumerate(path.read_text("utf-8", "ignore").splitlines(), 1):
+                if is_comment_or_pattern(line):
+                    continue
+                if regex.search(line):
+                    violations.append(f"{rel}:{lineno}: {line.strip()[:120]}")
+                    if len(violations) >= 20:  # cap output
+                        break
         except Exception:
             continue
-        for i, line in enumerate(text.splitlines(), 1):
-            if prefix_re.search(line) or (use_entropy and HIGH_ENTROPY.search(line)):
-                viol.append(f"{path}:{i}: {line.strip()[:120]}")
-    return {"violations": len(viol), "details": viol[:20]}  # cap output
+
+    return {"violations": len(violations), "details": violations}
