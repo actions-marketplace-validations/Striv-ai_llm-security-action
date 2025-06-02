@@ -71,10 +71,13 @@ def scan_api_keys(root: pathlib.Path, cfg):
             for lineno, line in enumerate(path.read_text("utf-8", "ignore").splitlines(), 1):
                 if is_comment_or_pattern(line):
                     continue
-                if regex.search(line):
-                    violations.append(f"{rel}:{lineno}: {line.strip()[:120]}")
-                    if len(violations) >= 20:  # cap output
-                        break
+                m = regex.search(line)
+                if m:
+                    # Skip if the matched token is short (e.g. "phi-2")
+                    token = line[m.start():].split()[0]  # first whitespace-delimited word
+                    if len(token) < 20:  # adjust threshold if desired
+                        continue
+                    violations.append(f"{rel}:{lineno}: {token[:120]}")
         except Exception:
             continue
 
