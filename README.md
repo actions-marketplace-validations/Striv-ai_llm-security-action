@@ -52,7 +52,7 @@ This will:
 
 Add to your README:
 ```markdown
-[![LLM Security](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/llm-security-badge.yml/badge.svg)](https://github.com/YOUR_USERNAME/YOUR_REPO/actions/workflows/llm-security-badge.yml)
+[![LLM Security](https://github.com/Ballesty-Liam/llm-security-action/actions/workflows/llm-security-badge.yml/badge.svg)](https://github.com/Ballesty-Liam/llm-security-action/actions/workflows/llm-security-badge.yml)
 ```
 
 ---
