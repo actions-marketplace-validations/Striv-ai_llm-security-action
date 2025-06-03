@@ -71,10 +71,15 @@ def _python_warnings(path: pathlib.Path):
                                 varname = val.value.id
                                 if varname in self.tainted and varname not in self.sanitized:
                                     warns.append(f"{path}:{node.lineno} UNSAFE: tainted f-string in LLM call")
+
             # Detect suspicious string content (e.g., prompt injections)
-            if isinstance(node, ast.Call):
-                for arg in node.args:
-                    if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+            for arg in node.args:
+                if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                    if not (hasattr(arg, 'parent') and isinstance(arg.parent, ast.List) and
+                            any(isinstance(p.parent, ast.Assign) and any(
+                                isinstance(t, ast.Name) and t.id == "PROMPT_INJECTION_PATTERNS"
+                                for t in p.parent.targets
+                            ) for p in [arg.parent])):
                         for patt in PROMPT_INJECTION_PATTERNS:
                             if patt.search(arg.value):
                                 warns.append(f"{path}:{node.lineno} SUSPICIOUS: possible prompt injection pattern")
