@@ -75,14 +75,15 @@ def _python_warnings(path: pathlib.Path):
             # Detect suspicious string content (e.g., prompt injections)
             for arg in node.args:
                 if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
-                    if not (hasattr(arg, 'parent') and isinstance(arg.parent, ast.List) and
-                            any(isinstance(p.parent, ast.Assign) and any(
-                                isinstance(t, ast.Name) and t.id == "PROMPT_INJECTION_PATTERNS"
-                                for t in p.parent.targets
-                            ) for p in [arg.parent])):
-                        for patt in PROMPT_INJECTION_PATTERNS:
-                            if patt.search(arg.value):
-                                warns.append(f"{path}:{node.lineno} SUSPICIOUS: possible prompt injection pattern")
+                    # Skip if this is part of PROMPT_INJECTION_PATTERNS declaration
+                    parent = getattr(arg, 'parent', None)
+                    grandparent = getattr(parent, 'parent', None)
+                    if isinstance(parent, ast.List) and isinstance(grandparent, ast.Assign):
+                        if any(isinstance(t, ast.Name) and t.id == "PROMPT_INJECTION_PATTERNS" for t in grandparent.targets):
+                            continue  # skip pattern list definitions
+                    for patt in PROMPT_INJECTION_PATTERNS:
+                        if patt.search(arg.value):
+                            warns.append(f"{path}:{node.lineno} SUSPICIOUS: possible prompt injection pattern")
 
             self.generic_visit(node)
 
