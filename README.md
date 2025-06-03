@@ -18,15 +18,24 @@ No secrets required – uses the default `GITHUB_TOKEN`.
 
 ```yaml
 # .github/workflows/llm-security.yml
-name: LLM Security Check
+name: LLM Agent Trust Verification
+
 on: [push, pull_request]
 
 jobs:
   security:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: Ballesty-Liam/llm-security-action@v1
+      # 1) Check out the code that you want to scan
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2) Run the LLM security Action
+      - name: LLM Policy Scan
+        uses: Ballesty-Liam/llm-security-action@main
+
+
 ```
 
 That's it! The action will run on every push and PR, scanning your code for LLM security vulnerabilities.

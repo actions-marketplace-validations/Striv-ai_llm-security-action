@@ -1,0 +1,52 @@
+# Common LLM model names to exclude from API key detection
+# Add your custom model names here, one per line
+
+# OpenAI Models
+gpt-4
+gpt-4-turbo
+gpt-4-32k
+gpt-3.5-turbo
+gpt-3.5-turbo-16k
+text-davinci-003
+text-davinci-002
+code-davinci-002
+
+# Anthropic Models
+claude-3-opus
+claude-3-sonnet
+claude-3-haiku
+claude-2.1
+claude-2
+claude-instant
+
+# Google Models
+gemini-pro
+gemini-pro-vision
+gemini-1.5-pro
+gemini-1.5-flash
+palm-2
+
+# Meta Models
+llama-3-70b
+llama-3-8b
+llama-2-70b
+llama-2-13b
+llama-2-7b
+codellama-70b
+
+# Mistral Models
+mistral-large
+mistral-medium
+mistral-small
+mistral-7b
+mixtral-8x7b
+
+# Cohere Models
+cohere-command
+cohere-command-light
+
+# Common model name patterns (regex)
+# gpt-*
+# claude-*-*
+# llama-*-*b
+# mistral-*

@@ -4,24 +4,34 @@ policies:
   rate-limit: true
   input-sanitize: true
 
-custom-api-key-prefixes: []        # add your own patterns
-exclude_globs:                     # speed / false-positive tweaks
+# API key prefixes specific to your organization
+custom-api-key-prefixes: []
+
+# Model names to exclude from API key detection
+exclude-model-names:
+  - "gpt-4.1-2025-04-14"    # Your custom model versions
+  - "our-internal-model-v2"
+
+# Files to exclude from scanning
+exclude_globs:
   - ".git/*"
   - "__pycache__/*"
-  - ".gitignore"
-  - "*.png"
-  - "*.jpg"
-  - "*.md"
   - "*.pyc"
-  - "*.class"
   - "verified_prefixes.txt"
+  - "model_names_exclude.txt"
   - "README.md"
   - "llm_policy/**"
   - ".github/**"
   - "scripts/**"
+  - "*.md"
+  - "tests/**"
+  - "examples/**"
 
+# API key scanning settings
 api-key-security:
-  high-entropy: false
+  min-key-length: 20        # Minimum length after prefix to consider as key
+  exclude-base64: true      # Exclude base64 encoded data
+  strict-mode: false        # If true, only flag exact known patterns
 
 rate-limit:
   languages: ["python", "javascript", "go"]
@@ -30,4 +40,4 @@ rate-limit:
 
 input-sanitize:
   languages: ["python", "javascript", "go"]
-  warn-only: true             # always warn; never fail
+  warn-only: true
