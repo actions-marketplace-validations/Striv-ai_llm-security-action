@@ -1,20 +1,62 @@
+# OpenAI
 sk-
 sk-proj-
+
+# Anthropic
 sk-ant-
+
+# AWS
 AKIA
+
+# Google Cloud
 AIza
-ya29.
+
+# GitHub
 ghp_
 gho_
 github_pat_
+
+# GitLab
 glpat-
+
+# Hugging Face
 hf_
-sq0atp-
-rzp_test_
-rzp_live_
-rk_live_
-rk_test_
-pk_test_
-pk_live_
+
+# Stripe
 sk_test_
 sk_live_
+pk_test_
+pk_live_
+rk_test_
+rk_live_
+
+# Square
+sq0atp-
+
+# Razorpay
+rzp_test_
+rzp_live_
+
+# Slack
+xoxb-
+xoxp-
+xoxo-
+xoxa-
+
+# Discord
+MQ
+NQ
+OQ
+
+# SendGrid
+SG.
+
+# Twilio
+SK
+AC
+
+# DigitalOcean
+dop_v1_
+
+# NPM
+npm_

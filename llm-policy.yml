@@ -26,6 +26,14 @@ exclude_globs:
   - "*.md"
   - "tests/**"
   - "examples/**"
+  - ".gitignore"              # Often has false positives
+  - "poetry.lock"             # Package locks have hashes
+  - "package-lock.json"       # Package locks have hashes
+  - "yarn.lock"               # Package locks have hashes
+  - "Pipfile.lock"            # Package locks have hashes
+  - "requirements*.txt"       # Package files
+  - "*.sum"                   # Go sum files
+  - "*.lock"                  # General lock files
 
 # API key scanning settings
 api-key-security:
