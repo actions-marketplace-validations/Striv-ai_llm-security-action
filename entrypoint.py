@@ -1,108 +1,115 @@
-#!/usr/bin/env python3
-import sys, json, pathlib, os
-from llm_policy import api_key_scanner, rate_limiter, input_sanitizer
+import os, sys, yaml, json, pathlib
+from llm_policy.api_key_scanner import scan_api_keys
+from llm_policy.rate_limit_scanner import scan_rate_limits
+from llm_policy.telemetry import emit_metrics
+from llm_policy.input_sanitize_scanner import scan_input_sanitization
 
-CONFIG_FILE = "llm-policy.yml"
+ROOT = pathlib.Path(".")
+CONFIG_FILE = os.getenv("INPUT_CONFIG", "llm-policy.yml")
 
 
-def load_config():
+def load_cfg():
     if pathlib.Path(CONFIG_FILE).exists():
-        import yaml
-        return yaml.safe_load(pathlib.Path(CONFIG_FILE).read_text())
-    return {"policies": {"api-key-security": True, "rate-limit": True, "input-sanitize": True}}
+        with open(CONFIG_FILE, "r") as f:
+            return yaml.safe_load(f) or {}
+    return {}
 
 
-def set_github_output(name, value):
-    """Set output for GitHub Actions"""
-    if os.getenv('GITHUB_OUTPUT'):
-        with open(os.getenv('GITHUB_OUTPUT'), 'a') as f:
-            f.write(f"{name}={value}\n")
+def set_github_outputs(results, failed):
+    """Set GitHub Action outputs for use in workflows"""
+    output_file = os.getenv('GITHUB_OUTPUT')
+    if not output_file:
+        return
 
+    # Calculate overall status
+    api_violations = results.get("api_key_security", {}).get("violations", 0)
+    rate_warnings = results.get("rate_limit", {}).get("total", 0)
+    sanitize_warnings = results.get("input_sanitize", {}).get("total", 0)
 
-def main():
-    print("Starting LLM Policy Scanner...")
-    cfg = load_config()
-    repo_root = pathlib.Path(".")
-
-    results = {}
-    violations = 0
-    warnings = 0
-    has_error = False  # Now only for actual errors, not security issues
-
-    # Run enabled scanners
-    if cfg["policies"].get("api-key-security", True):
-        print("\n🔍 Scanning for API Keys...")
-        try:
-            res = api_key_scanner.scan_api_keys(repo_root, cfg)
-            results["api_key_security"] = res
-            if res["violations"] > 0:
-                # API keys are now warnings, not errors
-                warnings += res["violations"]
-                for detail in res["details"]:
-                    # Use warning annotation instead of error
-                    print(
-                        f"::warning file={detail.split(':')[0]},line={detail.split(':')[1]}::Potential API key found: {detail}")
-        except Exception as e:
-            print(f"Error in API key scanner: {e}")
-            has_error = True
-
-    if cfg["policies"].get("rate-limit", True):
-        print("\n⏱️  Checking Rate Limits...")
-        try:
-            res = rate_limiter.scan_rate_limits(repo_root, cfg)
-            results["rate_limit"] = res
-            if res["warnings"] > 0:
-                warnings += res["warnings"]
-                for detail in res["details"]:
-                    print(f"::warning file={detail.split(':')[0]},line={detail.split(':')[1]}::{detail}")
-        except Exception as e:
-            print(f"Error in rate limit scanner: {e}")
-            has_error = True
-
-    if cfg["policies"].get("input-sanitize", True):
-        print("\n🛡️  Checking Input Sanitization...")
-        try:
-            res = input_sanitizer.scan_input_sanitization(repo_root, cfg)
-            results["input_sanitize"] = res
-            if res["warnings"] > 0:
-                warnings += res["warnings"]
-                for detail in res["details"]:
-                    print(f"::warning file={detail.split(':')[0]},line={detail.split(':')[1]}::{detail}")
-        except Exception as e:
-            print(f"Error in input sanitizer: {e}")
-            has_error = True
-
-    # Summary
-    print("\n" + "=" * 50)
-    print("LLM POLICY SCAN RESULTS")
-    print("=" * 50)
-    print(json.dumps(results, indent=2))
-    print("=" * 50)
-
-    # Determine status - only fail on actual errors, not security findings
-    if has_error:
+    if failed:
         status = "failed"
-        badge_status = "❌ Error"
-        print("\nNotice: ❌ Scan encountered errors")
-    elif warnings > 0:
+        badge_status = "❌ Failed"
+    elif api_violations > 0 or rate_warnings > 0 or sanitize_warnings > 0:
         status = "warning"
         badge_status = "⚠️ Warnings"
-        print(f"\nNotice: ⚠️ Found {warnings} warnings")
     else:
         status = "passed"
         badge_status = "✅ Secured"
-        print("\nNotice: ✅ All checks passed!")
 
-    # Set GitHub outputs
-    set_github_output("status", status)
-    set_github_output("api-key-violations", results.get("api_key_security", {}).get("violations", 0))
-    set_github_output("rate-limit-warnings", results.get("rate_limit", {}).get("warnings", 0))
-    set_github_output("input-sanitize-warnings", results.get("input_sanitize", {}).get("warnings", 0))
-    set_github_output("badge-status", badge_status)
+    # Write outputs
+    with open(output_file, 'a') as f:
+        f.write(f"status={status}\n")
+        f.write(f"api-key-violations={api_violations}\n")
+        f.write(f"rate-limit-warnings={rate_warnings}\n")
+        f.write(f"input-sanitize-warnings={sanitize_warnings}\n")
+        f.write(f"badge-status={badge_status}\n")
 
-    # Exit based on errors only, not security findings
-    sys.exit(1 if has_error else 0)
+    # Also set for GitHub Actions annotations
+    print(f"::notice title=LLM Security Status::{badge_status}")
 
 
-if __name__ == "__main__":
-    main()
+cfg = load_cfg()
+policies = cfg.get("policies", {"api-key-security": True, "rate-limit": True})
+failed = False
+results = {}
+
+# API Key Security Scanner
+if policies.get("api-key-security"):
+    res = scan_api_keys(ROOT, cfg)
+    results["api_key_security"] = res
+    # API keys are now warnings, not failures
+    # failed |= res["violations"] > 0  # REMOVED THIS LINE
+
+    # Output warnings instead of errors for violations
+    if res["violations"] > 0:
+        print(f"::warning title=API Key Violations::Found {res['violations']} potential API keys or tokens")
+        for detail in res.get("details", [])[:5]:  # Show first 5
+            print(f"::warning file={detail.split(':')[0]}::{detail}")
+
+# Input Sanitization Scanner
+if policies.get("input-sanitize", True):
+    res = scan_input_sanitization(ROOT, cfg)
+    results["input_sanitize"] = res
+    # warn-only → no change to `failed`
+
+    # Output warnings as annotations
+    if res.get("total", 0) > 0:
+        print(f"::warning title=Input Sanitization::Found {res['total']} potential unsanitized inputs")
+        for warning in res.get("warnings", [])[:5]:  # Show first 5
+            if ":" in warning:
+                parts = warning.split(":", 2)
+                print(
+                    f"::warning file={parts[0]},line={parts[1]}::{parts[2] if len(parts) > 2 else 'Unsanitized input'}")
+
+# Rate Limit Scanner
+if policies.get("rate-limit"):
+    res = scan_rate_limits(ROOT, cfg)
+    results["rate_limit"] = res
+    # warn only; not changing `failed`
+
+    # Output warnings as annotations
+    if res.get("total", 0) > 0:
+        print(f"::warning title=Rate Limiting::Found {res['total']} LLM calls without rate limiting")
+        for warning in res.get("warnings", [])[:5]:  # Show first 5
+            if ":" in warning:
+                parts = warning.split(":", 2)
+                print(
+                    f"::warning file={parts[0]},line={parts[1]}::{parts[2] if len(parts) > 2 else 'Missing rate limit'}")
+
+# Pretty print results
+print("\n" + "=" * 50)
+print("LLM POLICY SCAN RESULTS")
+print("=" * 50)
+print(json.dumps(results, indent=2))
+print("=" * 50 + "\n")
+
+# Emit telemetry
+emit_metrics(results, cfg)
+
+# Set GitHub Action outputs
+set_github_outputs(results, failed)
+
+# Final status
+if failed:
+    sys.exit("❌ Policy enforcement failed")
+print("✅ All checks completed")
