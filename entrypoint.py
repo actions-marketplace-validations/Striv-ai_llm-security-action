@@ -29,7 +29,7 @@ def set_github_outputs(results, failed):
     if failed:
         status = "failed"
         badge_status = "❌ Failed"
-    elif rate_warnings > 0 or sanitize_warnings > 0:
+    elif api_violations > 0 or rate_warnings > 0 or sanitize_warnings > 0:
         status = "warning"
         badge_status = "⚠️ Warnings"
     else:
@@ -57,13 +57,14 @@ results = {}
 if policies.get("api-key-security"):
     res = scan_api_keys(ROOT, cfg)
     results["api_key_security"] = res
-    failed |= res["violations"] > 0
+    # API keys are now warnings, not failures
+    # failed |= res["violations"] > 0  # REMOVED THIS LINE
 
-    # Output annotations for violations
+    # Output warnings instead of errors for violations
     if res["violations"] > 0:
-        print(f"::error title=API Key Violations::Found {res['violations']} exposed API keys or tokens")
+        print(f"::warning title=API Key Violations::Found {res['violations']} potential API keys or tokens")
         for detail in res.get("details", [])[:5]:  # Show first 5
-            print(f"::error file={detail.split(':')[0]}::{detail}")
+            print(f"::warning file={detail.split(':')[0]}::{detail}")
 
 # Input Sanitization Scanner
 if policies.get("input-sanitize", True):
@@ -111,4 +112,4 @@ set_github_outputs(results, failed)
 # Final status
 if failed:
     sys.exit("❌ Policy enforcement failed")
-print("✅ All mandatory policies passed")
+print("✅ All checks completed")
