@@ -34,8 +34,6 @@ jobs:
       # 2) Run the LLM security Action
       - name: LLM Policy Scan
         uses: Ballesty-Liam/llm-security-action@v1
-
-
 ```
 
 That's it! The action will run on every push and PR, scanning your code for LLM security vulnerabilities.

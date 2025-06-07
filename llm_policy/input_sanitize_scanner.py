@@ -1,14 +1,26 @@
-import ast, pathlib, re
+import ast
+import pathlib
+import re
 import itertools
+from typing import Set, List, Dict
 
-# Functions we consider as “sanitizers”
+# ----------------------- Configuration -----------------------
 SANITIZERS = {
     "html.escape", "re.escape", "bleach.clean", "sanitize_input",
-    "strip_tags", "escape_html", "mark_safe", "escape",
+    "strip_tags", "escape_html", "mark_safe", "escape"
 }
 
-API_RE = re.compile(r"\b(openai|anthropic|cohere|mistral)\b", re.I)
+# Add known LLM API identifiers (customizable)
+LLM_APIS = re.compile(r"\b(openai|anthropic|cohere|mistral|llama|langchain|huggingface|transformers)\b", re.I)
 
+# Strings to check for prompt injection red flags
+PROMPT_INJECTION_PATTERNS = [
+    re.compile(r"(?i)ignore (previous|all) instructions"),
+    re.compile(r"(?i)you are now"),
+    re.compile(r"(?i)as an ai")
+]
+
+# ----------------------- AST Scanner -----------------------
 def _python_warnings(path: pathlib.Path):
     txt = path.read_text("utf-8", "ignore")
     tree = ast.parse(txt, filename=str(path))
@@ -16,64 +28,94 @@ def _python_warnings(path: pathlib.Path):
 
     class Flow(ast.NodeVisitor):
         def __init__(self):
-            self.tainted = set()
+            self.tainted: Set[str] = set()
+            self.sanitized: Set[str] = set()
 
-        # Any assignment from input()/request.json/etc. marks variable tainted
-        def visit_Call(self, node):
-            src = ast.unparse(node.func)
-            if src in {"input", "request.get_json", "request.json"}:
-                if isinstance(node.parent, ast.Assign):
-                    for t in node.parent.targets:
+        def visit_Assign(self, node):
+            value = node.value
+            targets = node.targets
+            # Track tainted assignments
+            if isinstance(value, ast.Call):
+                func_name = ast.unparse(value.func)
+                if func_name in {"input", "request.get_json", "request.json"}:
+                    for t in targets:
                         if isinstance(t, ast.Name):
                             self.tainted.add(t.id)
+                elif any(s in func_name for s in SANITIZERS):
+                    for t in targets:
+                        if isinstance(t, ast.Name):
+                            self.sanitized.add(t.id)
+                elif any(isinstance(arg, ast.Name) and arg.id in self.tainted for arg in value.args):
+                    for t in targets:
+                        if isinstance(t, ast.Name):
+                            self.tainted.add(t.id)  # Propagate taint
+            elif isinstance(value, ast.Name) and value.id in self.tainted:
+                for t in targets:
+                    if isinstance(t, ast.Name):
+                        self.tainted.add(t.id)  # Propagate taint
             self.generic_visit(node)
 
-        # Detect LLM calls with tainted args and no sanitizer in the call stack
-        def visit_Call_final(self, node):
-            if API_RE.search(ast.unparse(node.func)):
+        def visit_Call(self, node):
+            func_name = ast.unparse(node.func)
+
+            if LLM_APIS.search(func_name):
+                # Scan arguments for tainted usage
                 for arg in node.args:
-                    if isinstance(arg, ast.Name) and arg.id in self.tainted:
-                        if not any(san in ast.unparse(node).lower() for san in SANITIZERS):
-                            warns.append(f"{path}:{node.lineno} unsanitized input into LLM call")
+                    if isinstance(arg, ast.Name):
+                        varname = arg.id
+                        if varname in self.tainted and varname not in self.sanitized:
+                            warns.append(f"{path}:{node.lineno} UNSAFE: unsanitized input into LLM call: '{func_name}'")
+                    elif isinstance(arg, ast.JoinedStr):
+                        for val in arg.values:
+                            if isinstance(val, ast.FormattedValue) and isinstance(val.value, ast.Name):
+                                varname = val.value.id
+                                if varname in self.tainted and varname not in self.sanitized:
+                                    warns.append(f"{path}:{node.lineno} UNSAFE: tainted f-string in LLM call")
+
+            # Detect suspicious string content (e.g., prompt injections)
+            for arg in node.args:
+                if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                    # Skip if this string is in the same file and line as the PROMPT_INJECTION_PATTERNS definition
+                    if path.name.endswith("input_sanitize_scanner.py") and node.lineno in {19, 20, 21}:
+                        continue
+                    for patt in PROMPT_INJECTION_PATTERNS:
+                        if patt.search(arg.value):
+                            warns.append(f"{path}:{node.lineno} SUSPICIOUS: possible prompt injection pattern")
+
             self.generic_visit(node)
 
-    # parent links for easier context
     for n in ast.walk(tree):
         for c in ast.iter_child_nodes(n):
             c.parent = n
+
     Flow().visit(tree)
     return warns
 
-import itertools, re, pathlib
-
-# … keep SANITIZERS, API_RE, _python_warnings from earlier …
-
-def scan_input_sanitization(root: pathlib.Path, cfg):
+# ----------------------- Main Entry Scanner -----------------------
+def scan_input_sanitization(root: pathlib.Path, cfg: Dict):
     enabled_langs = set(cfg.get("input-sanitize", {}).get("languages", ["python"]))
-    total = []
+    total: List[str] = []
 
-    # -------- Python (AST-based) --------
+    # Python (AST-based)
     if "python" in enabled_langs:
         for p in root.rglob("*.py"):
             try:
                 total.extend(_python_warnings(p))
-            except Exception:
-                pass
+            except Exception as e:
+                total.append(f"{p}: ERROR scanning file - {e}")
 
-    # -------- JS / TS / Go (regex heuristic) --------
+    # JS/TS/Go (heuristic based)
     if enabled_langs.intersection({"javascript", "go"}):
-        text_re = re.compile(
-            r"(prompt|message|input)\s*[:=].{0,80}\b(openai|anthropic)\b",
-            re.I,
-        )
-        for p in itertools.chain(
-            root.rglob("*.js"),
-            root.rglob("*.ts"),
-            root.rglob("*.go"),
-        ):
-            txt = p.read_text("utf-8", "ignore")
-            if text_re.search(txt):
-                total.append(f"{p}: possible unsanitized input")
+        text_re = re.compile(r"(prompt|message|input)\s*[:=].{0,100}\b(openai|anthropic|llama)\b", re.I)
+        for p in itertools.chain(root.rglob("*.js"), root.rglob("*.ts"), root.rglob("*.go")):
+            try:
+                txt = p.read_text("utf-8", "ignore")
+                if text_re.search(txt):
+                    total.append(f"{p}: heuristic match for unsanitized input into LLM API")
+            except Exception as e:
+                total.append(f"{p}: ERROR reading file - {e}")
 
-    return {"warnings": total[:20], "total": len(total)}
-
+    return {
+        "warnings": total[:100],  # truncate output to first 100
+        "total": len(total)
+    }
