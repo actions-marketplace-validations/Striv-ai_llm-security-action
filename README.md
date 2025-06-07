@@ -5,10 +5,10 @@
 Secure your Gen-AI codebase in **one line**.  
 Professional LLM security scanning for production AI applications:
 
-| 🔐 **API Key Security** | Detects leaked API keys & high-entropy tokens for common LLM/ML providers. _Fails_ the build on any hit. |
-|-------------------------|----------------------------------------------------------------------------------------------------------|
-| ⚡ **Rate Limit Heuristic** | Warns when LLM calls appear in loops without back-off (`sleep`, retry, etc.). _Warn-only_ by default. |
-| 🛡️ **Input Sanitization** | Identifies unsanitized user input flowing into LLM API calls. _Warn-only_ by default. |
+| 🔐 **API Key Security** | Detects leaked API keys & high-entropy tokens for common LLM/ML providers. Warns the build on any hit.                                                                                                           |
+|-------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ⚡ **Rate Limit Heuristic** | Warns when LLM calls appear in loops without appropriate delay (`sleep`, retry, etc.). Flags short or missing delays only if actual LLM API calls are detected. _Warn-only_ by default.                          |
+| 🛡️ **Input Sanitization** | Identifies unsanitized or tainted user input flowing into LLM API calls using AST-based analysis. Detects tainted f-strings, constant injection patterns, and unsafe variable propagation. _Warn-only_ by default. |
 
 No secrets required – uses the default `GITHUB_TOKEN`.
 
@@ -18,15 +18,24 @@ No secrets required – uses the default `GITHUB_TOKEN`.
 
 ```yaml
 # .github/workflows/llm-security.yml
-name: LLM Security Check
+name: LLM Agent Trust Verification
+
 on: [push, pull_request]
 
 jobs:
   security:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: Ballesty-Liam/llm-security-action@v1
+      # 1) Check out the code that you want to scan
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2) Run the LLM security Action
+      - name: LLM Policy Scan
+        uses: Ballesty-Liam/llm-security-action@v1
+
+
 ```
 
 That's it! The action will run on every push and PR, scanning your code for LLM security vulnerabilities.
@@ -63,17 +72,17 @@ Add to your README:
 
 **API Key Detection**
 - Common LLM provider prefixes (OpenAI, Anthropic, Cohere, etc.)
-- High-entropy strings that look like tokens
+- High-entropy strings that look like tokens (with entropy, character variety, and context filtering)
 - Custom prefix patterns you define
 
 **Rate Limiting**
 - LLM API calls inside `for`/`while` loops
-- Missing `sleep()` or backoff mechanisms
+- Missing or too-short `sleep()` delays (only when API calls are present)
 - Supports Python, JavaScript, TypeScript, and Go
 
 **Input Sanitization**
-- Direct user input → LLM API calls
-- Missing HTML/SQL escape functions
+- Direct or indirect user input flowing into LLM API calls
+- Tainted variables, f-strings, or user input not passed through sanitizers
 - AST-based analysis for Python, regex for JS/Go
 
 ### ⚙️ Configuration
@@ -131,29 +140,6 @@ Available outputs:
 - `rate-limit-warnings`: Number of rate limit issues  
 - `input-sanitize-warnings`: Number of sanitization issues
 - `badge-status`: Human-readable status with emoji
-
----
-
-## Advanced Usage
-
-### PR Comments on Failure
-
-```yaml
-- uses: Ballesty-Liam/llm-security-action@v1
-  id: scan
-  
-- name: Comment PR
-  if: failure() && github.event_name == 'pull_request'
-  uses: actions/github-script@v7
-  with:
-    script: |
-      github.rest.issues.createComment({
-        issue_number: context.issue.number,
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        body: '❌ Security scan failed! Check logs for details.'
-      })
-```
 
 ---
 ## 🏢 Professional Security Analysis
