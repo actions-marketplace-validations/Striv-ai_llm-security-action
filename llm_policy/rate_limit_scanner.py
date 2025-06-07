@@ -1,6 +1,5 @@
 import ast, pathlib, re
 
-# Refined to match actual method calls like openai.ChatCompletion.create
 API_CALL_RE = re.compile(r"\b(openai|anthropic|cohere|mistral)\s*\.\s*\w+", re.I)
 SLEEP_FUNCS = {"sleep", "asyncio.sleep"}
 SUPPORTED = {"python": [".py"], "javascript": [".js", ".ts"], "go": [".go"]}
@@ -22,6 +21,7 @@ def _python_check(path, min_sleep):
             calls = [n for n in ast.walk(node) if isinstance(n, ast.Call)]
             found_api_call = False
             found_sleep_call = False
+            short_sleep_flagged = False
 
             for c in calls:
                 if isinstance(c.func, ast.Attribute):
@@ -32,10 +32,12 @@ def _python_check(path, min_sleep):
                     found_sleep_call = True
                     if (len(c.args) > 0 and isinstance(c.args[0], ast.Constant) and
                         float(c.args[0].value) < min_sleep):
-                        warnings.append(f"{path}:{c.lineno} sleep too short for rate-limit")
+                        short_sleep_flagged = True
 
             if found_api_call and not found_sleep_call:
                 warnings.append(f"{path}:{node.lineno} missing rate-limit")
+            elif found_api_call and short_sleep_flagged:
+                warnings.append(f"{path}:{node.lineno} sleep too short for rate-limit")
 
     Finder().visit(tree)
     return warnings
