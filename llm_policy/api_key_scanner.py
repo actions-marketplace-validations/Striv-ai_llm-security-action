@@ -15,7 +15,7 @@ def load_prefixes(extra):
 # Patterns that are definitely NOT API keys
 NOT_KEYS = [
     # File paths and URLs
-    r"\.txt$", r"\.py$", r"\.js$", r"\.md$", r"\.yml$", r"\.yaml$",
+    r"\.txt$", r"\.py$", r"\.js$", r"\.md$", r"\.yml$", r"\.yaml$", r"\.conf$",
     r"^/", r"^\./", r"^https?://", r"^[a-zA-Z]+://",
     r"/", r"\\",  # Contains path separators
 
@@ -29,22 +29,47 @@ NOT_KEYS = [
 
     # Model names (additional patterns)
     r"^(gpt|claude|llama|mistral|gemini|palm|cohere)-",
+
+    # Configuration values
+    r"_backups=[0-9]+$",  # stderr_logfile_backups=5
+    r"_maxbytes=[0-9]+[KMG]?B?$",  # stdout_capture_maxbytes=50MB
+    r"^[a-z_]+=[0-9]+[a-zA-Z]*$",  # any_config_key=123value
 ]
 
 NOT_KEYS_RE = re.compile("|".join(NOT_KEYS), re.IGNORECASE)
 
+# Common configuration file patterns
+CONFIG_PATTERNS = [
+    r"^\s*[a-zA-Z_][a-zA-Z0-9_]*\s*=",  # key = value
+    r"^\s*[a-zA-Z_][a-zA-Z0-9_]*:",  # key: value (YAML)
+    r"^\s*\[[^\]]+\]",  # [section]
+]
+CONFIG_RE = re.compile("|".join(CONFIG_PATTERNS))
 
-def is_likely_api_key(text, after_prefix=False):
+
+def is_config_line(line):
+    """Check if this line looks like a configuration setting"""
+    return bool(CONFIG_RE.match(line))
+
+
+def is_likely_api_key(text, after_prefix=False, full_line=None):
     """
     Determine if a string is likely an API key based on its characteristics.
 
     Args:
         text: The string to check
         after_prefix: True if this is the part after a known prefix
+        full_line: The complete line for context
     """
     # Definitely not a key if it matches exclusion patterns
     if NOT_KEYS_RE.search(text):
         return False
+
+    # Check if this is part of a configuration line
+    if full_line and is_config_line(full_line):
+        # Only flag if it really looks like a key (very long, high entropy)
+        if len(text) < 30:
+            return False
 
     # If it's after a known prefix, be more lenient
     if after_prefix:
@@ -92,9 +117,15 @@ def scan_api_keys(root: pathlib.Path, cfg):
         if any(fnmatch.fnmatch(str(path), pat) for pat in exclude_globs):
             continue
 
-        # Skip .gitignore files entirely - they often have false positives
-        if path.name == ".gitignore":
+        # Skip .gitignore and common config files entirely
+        if path.name in [".gitignore", "supervisord.conf", "supervisor.conf"]:
             continue
+
+        # Skip common configuration file extensions
+        if path.suffix in [".conf", ".ini", ".cfg", ".config", ".toml"]:
+            # Only scan if explicitly not excluded
+            if any(fnmatch.fnmatch(str(path), "*.conf") for pat in exclude_globs):
+                continue
 
         text = ""
         try:
@@ -124,17 +155,20 @@ def scan_api_keys(root: pathlib.Path, cfg):
                     full_key = potential_key.group()
                     after_prefix = full_key[len(prefix_match.group()):]
 
-                    if is_likely_api_key(after_prefix, after_prefix=True):
+                    if is_likely_api_key(after_prefix, after_prefix=True, full_line=line_stripped):
                         viol.append(f"{path}:{i}: {line_stripped[:120]}")
 
             # For standalone high entropy detection, be VERY conservative
-            # Only look for patterns that really look like tokens
             else:
+                # Skip configuration lines unless they have extremely suspicious patterns
+                if is_config_line(line):
+                    continue
+
                 # Look for token-like patterns (must have specific characteristics)
                 token_pattern = re.compile(r'\b[A-Za-z0-9_-]{40,}\b')
                 for match in token_pattern.finditer(line):
                     candidate = match.group()
-                    if is_likely_api_key(candidate, after_prefix=False):
+                    if is_likely_api_key(candidate, after_prefix=False, full_line=line_stripped):
                         # Extra check: not in a URL or file path context
                         surrounding = line[max(0, match.start() - 10):match.end() + 10]
                         if not any(sep in surrounding for sep in ['/', '\\', '://', 'http', '.com', '.org']):

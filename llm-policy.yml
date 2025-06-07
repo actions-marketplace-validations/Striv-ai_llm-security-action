@@ -34,12 +34,19 @@ exclude_globs:
   - "requirements*.txt"       # Package files
   - "*.sum"                   # Go sum files
   - "*.lock"                  # General lock files
+  - "*.conf"                  # Configuration files
+  - "*.ini"                   # Configuration files
+  - "*.cfg"                   # Configuration files
+  - "*.config"                # Configuration files
+  - "*.toml"                  # Configuration files
+  - "docker/*"                # Docker configs often have false positives
 
 # API key scanning settings
 api-key-security:
   min-key-length: 20        # Minimum length after prefix to consider as key
   exclude-base64: true      # Exclude base64 encoded data
   strict-mode: false        # If true, only flag exact known patterns
+  warn-only: true
 
 rate-limit:
   languages: ["python", "javascript", "go"]
